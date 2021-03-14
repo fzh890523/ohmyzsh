@@ -9,10 +9,32 @@ function __git_prompt_git() {
   GIT_OPTIONAL_LOCKS=0 command git "$@"
 }
 
+function __skip_git() {
+  local fs=$(stat -f -c %T .)
+  test -z "$fs" && return 1
+
+  if [[ ${#ZSH_GIT_INCLUDE_FS[@]} -gt 0 ]]; then
+    for v in "${ZSH_GIT_INCLUDE_FS[@]}"; do
+      if [[ $fs =~ $v ]]; then
+        return 1
+      fi
+    done
+    return 0
+  else
+    for v in "${ZSH_GIT_EXCLUDE_FS[@]}"; do
+      if [[ $fs =~ $v ]]; then
+        return 0
+      fi
+    done
+    return 1
+  fi
+}
+
 function git_prompt_info() {
   # If we are on a folder not tracked by git, get out.
   # Otherwise, check for hide-info at global and local repository level
   if ! __git_prompt_git rev-parse --git-dir &> /dev/null \
+     || __skip_git \
      || [[ "$(__git_prompt_git config --get oh-my-zsh.hide-info 2>/dev/null)" == 1 ]]; then
     return 0
   fi
